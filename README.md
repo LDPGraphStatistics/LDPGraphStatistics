@@ -1,4 +1,4 @@
-# LDPGraphStatistics
+# LDP Graph Statistics
 
 This is a source code of "Locally Differentially Private Analysis of Graph Statistics".
 
