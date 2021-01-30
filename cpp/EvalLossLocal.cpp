@@ -17,7 +17,7 @@ string EdgeFile;
 int NodeNum;
 double Eps;
 string Eps_s;
-double EpsLocSen;
+double EpsNsMaxDeg;
 int NSType;
 double PosBias;
 string PosBias_s;
@@ -114,13 +114,8 @@ double CalcNSMaxDeg(int *deg, int &max_deg, double eps, string outfile){
 	}
 	// Add positive bias --> max_deg_ns
 	max_deg_ns += PosBias;
-	// Warning if max_deg > max_deg_ns
-	if((double)max_deg > max_deg_ns){
-		fp = FileOpen(outfile, "a");
-		fprintf(fp, "Warning: max_deg (=%d) > max_deg_ns (=%f). ", max_deg, max_deg_ns);
-		fclose(fp);
-	}
-	// If max_deg_ns exceeds glb_sen_tri, then use glb_sen_tri
+
+	// If max_deg_ns exceeds NodeNum - 1, then use NodeNum - 1
 	if(max_deg_ns > (double)NodeNum - 1.0) max_deg_ns = (double)NodeNum - 1.0;
 
 	// free
@@ -145,50 +140,27 @@ void CalcCentTri(long long tri_num, map<int, int> *a_mat, int *deg, string outfi
 	// Initialization
 	tri_num_ns = tri_num;
 
-    // Global sensitivity-based method
+    // Lap (#nodes)
     if(NSType == 0){
-        // Global sensitivity --> sen_tri
+        // Global sensitivity using #nodes --> sen_tri
         glb_max_deg = NodeNum - 1;
         sen_tri = (double)glb_max_deg - 1.0;
 
-        // Add Lap((global sensitivity/Eps)) --> tri_num_ns
+        // Add Lap(sen_tri/Eps) --> tri_num_ns
 		tri_num_ns += stats::rlaplace(0.0, sen_tri/Eps, engine);
 	}
-	// Local sensitivity-based method
+	// Lap (max degree)
 	else if(NSType == 1){
-		// local sensitivity --> sen_tri
+        // Global sensitivity using max degree --> sen_tri
+		// max(deg) --> max_deg
+		max_deg = 0;
 		for(i=0;i<NodeNum;i++){
-			for (aitr = a_mat[i].begin(); aitr != a_mat[i].end(); aitr++) {
-				j = aitr->first;
-				for (aitr2 = a_mat[i].begin(); aitr2 != a_mat[i].end(); aitr2++) {
-					k = aitr2->first;
-					if(j >= k) continue;
-					a2_mat[make_tuple(j,k)] += 1;
-				}
-			}
+			if(max_deg < deg[i]) max_deg = deg[i];
 		}
-		sen_tri = 0.0;
-		for (a2_itr = a2_mat.begin(); a2_itr != a2_mat.end(); a2_itr++) {
-			if(sen_tri < (double)a2_itr->second) sen_tri = (double)a2_itr->second;
-		}
+		sen_tri = (double)max_deg;
 
-		// Add Lap((local sensitivity/Eps)) --> tri_num_ns
+		// Add Lap(sen_tri/Eps) --> tri_num_ns
 		tri_num_ns += stats::rlaplace(0.0, sen_tri/Eps, engine);
-	}
-	// Noisy local sensitivity-based method
-	else{
-		// Eps = EpsLocSen + EpsLap
-		EpsLap = Eps - EpsLocSen;
-		// Calculate the noisy max degree --> max_deg_ns
-		max_deg_ns = CalcNSMaxDeg(deg, max_deg, EpsLocSen, outfile);
-		// If max(deg) exceeds max_deg_ns, then perform graph projection
-		if((double)max_deg > max_deg_ns){
-		}
-
-		// Noisy local sensitivity --> sen_tri
-		sen_tri = max_deg_ns - 1.0;
-		// Add Lap((noisy local sensitivity/EpsLap)) --> tri_num_ns
-		tri_num_ns += stats::rlaplace(0.0, sen_tri/EpsLap, engine);
 	}
 }
 
@@ -206,20 +178,20 @@ void CalcCentSt(long long st2_num, long long st3_num, map<int, int> *a_mat, int 
     st2_num_ns = st2_num;
     st3_num_ns = st3_num;
 
-    // Global sensitivity-based method
+    // Lap (#nodes)
     if(NSType == 0){
-		// Global sensitivity --> sen_st2, sen_st3
+		// Global sensitivity using #nodes --> sen_st2, sen_st3
         glb_max_deg = NodeNum - 1;
         sen_st2 = 2.0 * (double)glb_max_deg;
         sen_st3 = (double)glb_max_deg * ((double)glb_max_deg - 1.0);
 
-		// Add Lap((global sensitivity/Eps)) --> tri_num_ns
+		// Add Lap(sen_tri/Eps) --> tri_num_ns
 		st2_num_ns += stats::rlaplace(0.0, sen_st2/Eps, engine);
 		st3_num_ns += stats::rlaplace(0.0, sen_st3/Eps, engine);
 	}
-	// Local sensitivity-based method
+	// Lap (max degree)
 	else if(NSType == 1){
-        // Local sensitivity via max(deg) --> sen_st2, sen_st3
+        // Global sensitivity using max degree --> sen_st2, sen_st3
         sen_st2 = sen_st3 = 0;
 		// max(deg) --> max_deg
 		max_deg = 0;
@@ -229,26 +201,9 @@ void CalcCentSt(long long st2_num, long long st3_num, map<int, int> *a_mat, int 
 		sen_st2 = 2.0 * (double)max_deg;
 		sen_st3 = (double)max_deg * ((double)max_deg - 1.0);
 
-		// Add Lap((local sensitivity/Eps)) --> st2_num_ns, st3_num_ns
+		// Add Lap(sen_tri/Eps) --> st2_num_ns, st3_num_ns
 		st2_num_ns += stats::rlaplace(0.0, sen_st2/Eps, engine);
 		st3_num_ns += stats::rlaplace(0.0, sen_st3/Eps, engine);
-	}
-	// Noisy local sensitivity-based method
-	else{
-		// Eps = EpsLocSen + EpsLap
-		EpsLap = Eps - EpsLocSen;
-		// Calculate the noisy max degree --> max_deg_ns
-		max_deg_ns = CalcNSMaxDeg(deg, max_deg, EpsLocSen, outfile);
-		// If max(deg) exceeds max_deg_ns, then perform graph projection
-		if((double)max_deg > max_deg_ns){
-		}
-
-        // Noisy local sensitivity --> sen_st2, sen_st3
-        sen_st2 = 2.0 * max_deg_ns;
-        sen_st3 = max_deg_ns * (max_deg_ns - 1.0);
-		// Add Lap((noisy local sensitivity/EpsLap)) --> sen_st2, sen_st3
-		st2_num_ns += stats::rlaplace(0.0, sen_st2/EpsLap, engine);
-		st3_num_ns += stats::rlaplace(0.0, sen_st3/EpsLap, engine);
 	}
 }
 
@@ -361,23 +316,24 @@ void CalcNLocSt(long long st2_num, long long st3_num, int *deg, string outfile, 
     st2_num_ns = st2_num;
     st3_num_ns = st3_num;
 
-    // Global sensitivity-based method
+    // Lap (#nodes)
     if(NSType == 0){
-		// Global sensitivity --> sen_st2, sen_st3
+		// Global sensitivity using #nodes --> sen_st2, sen_st3
         glb_max_deg = NodeNum - 1;
         sen_st2 = (double)glb_max_deg;
         sen_st3 = (double)glb_max_deg * ((double)glb_max_deg - 1.0) / 2.0;
 
-		// Add Lap((global sensitivity/Eps)) --> st2_num_ns, st3_num_ns
 		// Add Lap for each user
 		for(i=0;i<NodeNum;i++){
+			// Add Lap(sen_st2/Eps) --> st2_num_ns
 			st2_num_ns += stats::rlaplace(0.0, sen_st2/Eps, engine);
+			// Add Lap(sen_st3/Eps) --> st3_num_ns
 			st3_num_ns += stats::rlaplace(0.0, sen_st3/Eps, engine);
 		}
 	}
-	// Local sensitivity-based method
+	// Lap (max degree)
 	else if(NSType == 1){
-        // Local sensitivity via max(deg) --> sen_st2, sen_st3
+        // Global sensitivity using max degree --> sen_st2, sen_st3
         sen_st2 = sen_st3 = 0;
 		// max(deg) --> max_deg
 		max_deg = 0;
@@ -387,19 +343,20 @@ void CalcNLocSt(long long st2_num, long long st3_num, int *deg, string outfile, 
 		sen_st2 = (double)max_deg;
 		sen_st3 = (double)max_deg * ((double)max_deg - 1.0) / 2.0;
 
-		// Add Lap((local sensitivity/Eps)) --> st2_num_ns, st3_num_ns
 		// Add Lap for each user
 		for(i=0;i<NodeNum;i++){
+			// Add Lap(sen_st2/Eps) --> st2_num_ns
 			st2_num_ns += stats::rlaplace(0.0, sen_st2/Eps, engine);
+			// Add Lap(sen_st3/Eps) --> st3_num_ns
 			st3_num_ns += stats::rlaplace(0.0, sen_st3/Eps, engine);
 		}
 	}
-	// Noisy local sensitivity-based method
+	// Lap (noisy max degree)
 	else{
-		// Eps = EpsLocSen + EpsLap
-		EpsLap = Eps - EpsLocSen;
+		// Eps = EpsNsMaxDeg + EpsLap
+		EpsLap = Eps - EpsNsMaxDeg;
 		// Calculate the noisy max degree --> max_deg_ns
-		max_deg_ns = CalcNSMaxDeg(deg, max_deg, EpsLocSen, outfile);
+		max_deg_ns = CalcNSMaxDeg(deg, max_deg, EpsNsMaxDeg, outfile);
 
 		// If max(deg) exceeds max_deg_ns, then perform graph projection
 		if((double)max_deg > max_deg_ns){
@@ -418,27 +375,24 @@ void CalcNLocSt(long long st2_num, long long st3_num, int *deg, string outfile, 
 					del_num += (deg[i] - max_deg_ns_floor);
 				}
 			}
-			fp = FileOpen(outfile, "a");
-			fprintf(fp, "#deleted edges: %d. ", del_num);
-			fclose(fp);
 		}
-		fp = FileOpen(outfile, "a");
-		fprintf(fp, "max_deg:%d, max_deg_ns:%f @ CalcNLocSt\n", max_deg, max_deg_ns);
-		fclose(fp);
 
-        // Noisy local sensitivity --> sen_st2, sen_st3
+        // Global sensitivity using noisy max degree --> sen_st2, sen_st3
         sen_st2 = max_deg_ns;
         sen_st3 = max_deg_ns * (max_deg_ns - 1.0) / 2.0;
-		// Add Lap((noisy local sensitivity/EpsLap)) for each user --> st2_num_ns, st3_num_ns
+
+		// Add Lap for each user
 		for(i=0;i<NodeNum;i++){
+			// Add Lap(sen_st2/Eps) --> st2_num_ns
 			st2_num_ns += stats::rlaplace(0.0, sen_st2/EpsLap, engine);
+			// Add Lap(sen_st3/Eps) --> st3_num_ns
 			st3_num_ns += stats::rlaplace(0.0, sen_st3/EpsLap, engine);
 		}
 	}
 }
 
 // Calculate #triangles and #2-stars in the interactive local model
-void CalcILocTriSt2(map<int, int> *a_mat, int *deg, string outfile, double &tri_num_ns, double &st2_num_ns, double &sen_tri, double &sen_st2){
+void CalcILocTri(map<int, int> *a_mat, int *deg, string outfile, double &tri_num_ns, double &sen_tri){
 	double EpsLap, Eps1st, Eps2ndTr, Eps2ndSt, Eps2ndTrSt;
 	double Balloc_sum = 0.0;
 	map<int, int> *a_mat_ns;			// noisy adjacency matrix
@@ -473,7 +427,7 @@ void CalcILocTriSt2(map<int, int> *a_mat, int *deg, string outfile, double &tri_
 		Eps2ndTrSt = Eps * Balloc[1] / Balloc_sum;
 	}
 	else{
-		EpsLap = Eps - EpsLocSen;
+		EpsLap = Eps - EpsNsMaxDeg;
 		Eps1st = EpsLap * Balloc[0] / Balloc_sum;
 		Eps2ndTrSt = EpsLap * Balloc[1]  / Balloc_sum;
 	}
@@ -518,21 +472,21 @@ void CalcILocTriSt2(map<int, int> *a_mat, int *deg, string outfile, double &tri_
 	// #triangles - (1 - p) * #2-stars --> trist2_num_u
 	for(i=0;i<NodeNum;i++) trist2_num_u[i] = tri_num_u[i] - (1 - p) * st2_num_u[i];
 
-    // Global sensitivity-based method
+    // Lap (#nodes)
 	if(NSType == 0){
-		// Global sensitivity --> sen_tri
+		// Global sensitivity using #nodes --> sen_tri
         glb_max_deg = NodeNum - 1;
 		sen_tri = (double)glb_max_deg;
 
-		// Add Lap((global sensitivity/EpsTri)) --> tri_num_u
-		// Add Lap((global sensitivity/EpsSt2)) --> st2_num_u
+		// Add Lap for each user
 		for(i=0;i<NodeNum;i++){
+			// Add Lap(sen_tri/Eps2ndTrSt) --> trist2_num_u
 			trist2_num_u[i] += stats::rlaplace(0.0, sen_tri/Eps2ndTrSt, engine);
 		}
 	}
-	// Local sensitivity-based method
+	// Lap (max degree)
 	else if(NSType == 1){
-		// Local sensitivity --> sen_tri
+		// Global sensitivity using max degree --> sen_tri
 		sen_tri = 0.0;
 		// max(deg) --> max_deg
 		max_deg = 0;
@@ -541,17 +495,16 @@ void CalcILocTriSt2(map<int, int> *a_mat, int *deg, string outfile, double &tri_
 		}
 		sen_tri = (double)max_deg;
 
-		// Add Lap((local sensitivity/Eps2ndTr)) --> tri_num_u
-		// Add Lap((local sensitivity/Eps2ndSt)) --> st2_num_u
 		// Add Lap for each user
 		for(i=0;i<NodeNum;i++){
+			// Add Lap(sen_tri/Eps2ndTrSt) --> trist2_num_u
 			trist2_num_u[i] += stats::rlaplace(0.0, sen_tri/Eps2ndTrSt, engine);
 		}
 	}
-	// Noisy local sensitivity-based method
+	// Lap (noisy max degree)
 	else{
 		// Calculate the noisy max degree --> max_deg_ns
-		max_deg_ns = CalcNSMaxDeg(deg, max_deg, EpsLocSen, outfile);
+		max_deg_ns = CalcNSMaxDeg(deg, max_deg, EpsNsMaxDeg, outfile);
 
 		// If max(deg) exceeds max_deg_ns, then perform graph projection
 		if((double)max_deg > max_deg_ns){
@@ -596,20 +549,14 @@ void CalcILocTriSt2(map<int, int> *a_mat, int *deg, string outfile, double &tri_
 					}
 				}
 			}
-			fp = FileOpen(outfile, "a");
-			fprintf(fp, "#deleted edges: %d. ", del_num);
-			fclose(fp);
 		}
-		fp = FileOpen(outfile, "a");
-		fprintf(fp, "max_deg:%d, max_deg_ns:%f @ CalcILocTriSt2\n", max_deg, max_deg_ns);
-		fclose(fp);
 
-        // Noisy local sensitivity --> sen_tri, sen_st2
-		// Noisy local sensitivity --> sen_tri
+		// Global sensitivity using noisy max degree --> sen_tri
 		sen_tri = max_deg_ns;
 
-		// Add Lap((noisy local sensitivity/EpsLap)) for each user --> st2_num_u
+		// Add Lap for each user
 		for(i=0;i<NodeNum;i++){
+			// Add Lap(sen_tri/Eps2ndTrSt) --> trist2_num_u
 			trist2_num_u[i] += stats::rlaplace(0.0, sen_tri/Eps2ndTrSt, engine);
 		}
 	}
@@ -617,7 +564,7 @@ void CalcILocTriSt2(map<int, int> *a_mat, int *deg, string outfile, double &tri_
     // Empirical estimate --> tri_num_ns
     tri_num_ns = 0;
 	for(i=0;i<NodeNum;i++) tri_num_ns += trist2_num_u[i];
-	// Divide #triangles by (2p - 1)
+	// Divide #triangles by 2p - 1 (= 1 - 2q)
 	tri_num_ns /= (2.0 * p - 1.0);
 
 	delete[] a_mat_ns;
@@ -655,16 +602,15 @@ int main(int argc, char *argv[])
 	double clst;
 	double tri_num_ns, sen_tri;
 	double st2_num_ns, st3_num_ns, sen_st2, sen_st3;
-	double st2_num_ns_2, sen_st_2;
 	double clst_ns;
-	double tri_l1_ns, tri_l2_ns;
-	double tri_l1_ns_avg, tri_l1_ns_std, tri_l2_ns_avg, tri_l2_ns_std;
-	double st2_l1_ns, st2_l2_ns;
-	double st2_l1_ns_avg, st2_l1_ns_std, st2_l2_ns_avg, st2_l2_ns_std;
-	double st3_l1_ns, st3_l2_ns;
-	double st3_l1_ns_avg, st3_l1_ns_std, st3_l2_ns_avg, st3_l2_ns_std;
-	double clst_l1_ns, clst_l2_ns;
-	double clst_l1_ns_avg, clst_l1_ns_std, clst_l2_ns_avg, clst_l2_ns_std;
+	double tri_re_ns, tri_l2_ns;
+	double tri_re_ns_avg, tri_l2_ns_avg;
+	double st2_re_ns, st2_l2_ns;
+	double st2_re_ns_avg, st2_l2_ns_avg;
+	double st3_re_ns, st3_l2_ns;
+	double st3_re_ns_avg, st3_l2_ns_avg;
+	double clst_re_ns, clst_l2_ns;
+	double clst_re_ns_avg, clst_l2_ns_avg;
 	int itr;
 	int i, j, k, x;
 	string outdir;
@@ -682,8 +628,8 @@ int main(int argc, char *argv[])
 		printf("[EdgeFile]: Edge file\n");
 		printf("[#nodes]: Number of nodes (-1: all)\n");
 		printf("[epsilon]: Epsilon\n");
-		printf("[NSType]: Noise type (0: Lap (global), 1: Lap (local), 2: Lap (noisy local))\n");
-		printf("[PosBias]: Positive bias (noisy local)\n");
+		printf("[NSType]: Noise type (0: Lap (#nodes), 1: Lap (max degree), 2: Lap (noisy max degree))\n");
+		printf("[PosBias]: Positive bias (noisy max degree)\n");
 		printf("[#itr]: Number of iterations\n");
 		printf("[alg]: Algorithm (0: centralized, 1: non-interactive local (RR w/ emp), 2: non-interactive local (RR w/o emp), 3: interactive local)\n");
 		printf("[Balloc]: Privacy budget allocation (alg=3): Eps1st-Eps2ndTr-Eps2ndSt\n");
@@ -700,14 +646,14 @@ int main(int argc, char *argv[])
 		Eps = atof(argv[3]);
 		Eps_s = argv[3];
 	}
-	// Epsilon for calculating noisy local sensitivity
-	EpsLocSen = Eps / 10;
+	// Epsilon for calculating the noisy max degree
+	EpsNsMaxDeg = Eps / 10;
 	NSType = 0;
 	if (argc >= 5) NSType = atoi(argv[4]);
 	PosBias = 0.0;
 	PosBias_s = "0.0";
 	if (argc >= 6){
-		PosBias = atof(argv[5]) / EpsLocSen;
+		PosBias = atof(argv[5]) / EpsNsMaxDeg;
 		PosBias_s = argv[5];
 	}
 	ItrNum = 1;
@@ -716,6 +662,10 @@ int main(int argc, char *argv[])
 	if (argc >= 8) Alg = atoi(argv[7]);
 	if (Alg < 0 || Alg > 4){
 		printf("Error: incorect [Alg]\n");
+		exit(-1);
+	}
+	if (Alg == 0 && NSType == 2){
+		printf("Error: N/A (Alg = 0, NSType = 2)\n");
 		exit(-1);
 	}
 
@@ -791,10 +741,10 @@ int main(int argc, char *argv[])
 
 	// Initialization
 	malloc1D(&deg, NodeNum);
-	tri_l1_ns_avg = tri_l1_ns_std = tri_l2_ns_avg = tri_l2_ns_std = 0.0;
-	st2_l1_ns_avg = st2_l1_ns_std = st2_l2_ns_avg = st2_l2_ns_std = 0.0;
-	st3_l1_ns_avg = st3_l1_ns_std = st3_l2_ns_avg = st3_l2_ns_std = 0.0;
-	clst_l1_ns_avg = clst_l1_ns_std = clst_l2_ns_avg = clst_l2_ns_std = 0.0;
+	tri_re_ns_avg = tri_l2_ns_avg = 0.0;
+	st2_re_ns_avg = st2_l2_ns_avg = 0.0;
+	st3_re_ns_avg = st3_l2_ns_avg = 0.0;
+	clst_re_ns_avg = clst_l2_ns_avg = 0.0;
 
 	// Output the header
 	i = EdgeFile.find_last_of("/");
@@ -865,107 +815,95 @@ int main(int argc, char *argv[])
         	// Calculate #triangles
 			CalcCentTri(tri_num, a_mat, deg, outfile, tri_num_ns, sen_tri);
 		}
-		// Non-interactive local (RR w/ emp)
+		// Non-interactive (1-round) local (RR w/ emp)
 		else if (Alg == 1){
 			// Calculate #2-stars and #3-stars
         	CalcNLocSt(st2_num, st3_num, deg, outfile, st2_num_ns, st3_num_ns, sen_st2, sen_st3);
         	// Calculate #triangles
-			CalcNLocTri(a_mat, deg, outfile, tri_num_ns, 1);
+//			CalcNLocTri(a_mat, deg, outfile, tri_num_ns, 1);
+			if(NodeNum <= 10000) CalcNLocTri(a_mat, deg, outfile, tri_num_ns, 1);
+			else tri_num_ns = 0.0;
 			sen_tri = 0.0;
 		}
-		// Non-interactive local (RR w/o emp)
+		// Non-interactive (1-round) local (RR w/o emp)
 		else if (Alg == 2){
 			// Calculate #2-stars and #3-stars
         	CalcNLocSt(st2_num, st3_num, deg, outfile, st2_num_ns, st3_num_ns, sen_st2, sen_st3);
         	// Calculate #triangles
-			CalcNLocTri(a_mat, deg, outfile, tri_num_ns, 0);
+//			CalcNLocTri(a_mat, deg, outfile, tri_num_ns, 0);
+			if(NodeNum <= 10000) CalcNLocTri(a_mat, deg, outfile, tri_num_ns, 0);
+			else tri_num_ns = 0.0;
 			sen_tri = 0.0;
 		}
-		// Interactive local
+		// Interactive (2-rounds) local
 		else if (Alg == 3){
 			// Calculate #2-stars and #3-stars
         	CalcNLocSt(st2_num, st3_num, deg, outfile, st2_num_ns, st3_num_ns, sen_st2, sen_st3);
-        	// Calculate #triangles (we use #2-stars by CalcNLocSt (st2_num_ns))
-			CalcILocTriSt2(a_mat, deg, outfile, tri_num_ns, st2_num_ns_2, sen_tri, sen_st_2);
+        	// Calculate #triangles
+			CalcILocTri(a_mat, deg, outfile, tri_num_ns, sen_tri);
 		}
 
 		/******************** Calculate the cluster coefficient *********************/
 		clst_ns = CalcClstCoef(tri_num_ns, st2_num_ns);
 
 		/**************************** Evaluate the loss *****************************/
-		// relative error --> tri_l1_ns
-		tri_l1_ns = fabs(tri_num_ns - (double)tri_num) / max((double)tri_num, 0.001 * NodeNum);
-		tri_l1_ns_avg += tri_l1_ns;
-		tri_l1_ns_std += tri_l1_ns*tri_l1_ns;
+		// relative error --> tri_re_ns
+		tri_re_ns = fabs(tri_num_ns - (double)tri_num) / max((double)tri_num, 0.001 * NodeNum);
+		tri_re_ns_avg += tri_re_ns;
 		// l2_loss --> tri_l2_ns
 		tri_l2_ns = (tri_num_ns - (double)tri_num)*(tri_num_ns - (double)tri_num);
 		tri_l2_ns_avg += tri_l2_ns;
-		tri_l2_ns_std += tri_l2_ns*tri_l2_ns;
 
-		// relative error --> st2_l1_ns
-		st2_l1_ns = fabs(st2_num_ns - (double)st2_num) / max((double)st2_num, 0.001 * NodeNum);
-		st2_l1_ns_avg += st2_l1_ns;
-		st2_l1_ns_std += st2_l1_ns*st2_l1_ns;
+		// relative error --> st2_re_ns
+		st2_re_ns = fabs(st2_num_ns - (double)st2_num) / max((double)st2_num, 0.001 * NodeNum);
+		st2_re_ns_avg += st2_re_ns;
 		// l2_loss --> st2_l2_ns
 		st2_l2_ns = (st2_num_ns - (double)st2_num)*(st2_num_ns - (double)st2_num);
 		st2_l2_ns_avg += st2_l2_ns;
-		st2_l2_ns_std += st2_l2_ns*st2_l2_ns;
 
-		// relative error --> st3_l1_ns
-		st3_l1_ns = fabs(st3_num_ns - (double)st3_num) / max((double)st3_num, 0.001 * NodeNum);
-		st3_l1_ns_avg+= st3_l1_ns;
-		st3_l1_ns_std += st3_l1_ns*st3_l1_ns;
+		// relative error --> st3_re_ns
+		st3_re_ns = fabs(st3_num_ns - (double)st3_num) / max((double)st3_num, 0.001 * NodeNum);
+		st3_re_ns_avg+= st3_re_ns;
 		// l2_loss --> st3_l2_ns
 		st3_l2_ns = (st3_num_ns - (double)st3_num)*(st3_num_ns - (double)st3_num);
 		st3_l2_ns_avg += st3_l2_ns;
-		st3_l2_ns_std += st3_l2_ns*st3_l2_ns;
 
-		// relative error --> clst_l1_ns
-		clst_l1_ns = fabs(clst_ns - clst) / (double)clst;
-		clst_l1_ns_avg += clst_l1_ns;
-		clst_l1_ns_std += clst_l1_ns*clst_l1_ns;
+		// relative error --> clst_re_ns
+		clst_re_ns = fabs(clst_ns - clst) / (double)clst;
+		clst_re_ns_avg += clst_re_ns;
 		// l2_loss --> clst_l2_ns
 		clst_l2_ns = (clst_ns - clst)*(clst_ns - clst);
 		clst_l2_ns_avg += clst_l2_ns;
-		clst_l2_ns_std += clst_l2_ns*clst_l2_ns;
 
 		/**************************** Output the results ****************************/
 		fp = FileOpen(outfile, "a");
 		fprintf(fp, "%e,%e,%e,%e,%e,%e,%e,%e,%e,%e,%e,%e,%e,%e,%e,%e,%e,%e,%e\n", 
-		(double)tri_num, tri_num_ns, tri_l1_ns, tri_l2_ns, 
-		(double)st2_num, st2_num_ns, st2_l1_ns, st2_l2_ns, 
-		(double)st3_num, st3_num_ns, st3_l1_ns, st3_l2_ns, 
-		clst, clst_ns, clst_l1_ns, clst_l2_ns,
+		(double)tri_num, tri_num_ns, tri_re_ns, tri_l2_ns, 
+		(double)st2_num, st2_num_ns, st2_re_ns, st2_l2_ns, 
+		(double)st3_num, st3_num_ns, st3_re_ns, st3_l2_ns, 
+		clst, clst_ns, clst_re_ns, clst_l2_ns,
 		sen_tri, sen_st2, sen_st3);
 		fclose(fp);
 
 		delete[] a_mat;
 	}
 
-	/********************** Output the results (AVG, STD) ***********************/
-	tri_l1_ns_avg /= (double)ItrNum;
-	tri_l1_ns_std = sqrt(tri_l1_ns_std/(double)ItrNum - tri_l1_ns_avg*tri_l1_ns_avg);
+	/************************* Output the results (AVG) *************************/
+	tri_re_ns_avg /= (double)ItrNum;
 	tri_l2_ns_avg /= (double)ItrNum;
-	tri_l2_ns_std = sqrt(tri_l2_ns_std/(double)ItrNum - tri_l2_ns_avg*tri_l2_ns_avg);
-	st2_l1_ns_avg /= (double)ItrNum;
-	st2_l1_ns_std = sqrt(st2_l1_ns_std/(double)ItrNum - st2_l1_ns_avg*st2_l1_ns_avg);
+	st2_re_ns_avg /= (double)ItrNum;
 	st2_l2_ns_avg /= (double)ItrNum;
-	st2_l2_ns_std = sqrt(st2_l2_ns_std/(double)ItrNum - st2_l2_ns_avg*st2_l2_ns_avg);
-	st3_l1_ns_avg /= (double)ItrNum;
-	st3_l1_ns_std = sqrt(st3_l1_ns_std/(double)ItrNum - st3_l1_ns_avg*st3_l1_ns_avg);
+	st3_re_ns_avg /= (double)ItrNum;
 	st3_l2_ns_avg /= (double)ItrNum;
-	st3_l2_ns_std = sqrt(st3_l2_ns_std/(double)ItrNum - st3_l2_ns_avg*st3_l2_ns_avg);
-	clst_l1_ns_avg /= (double)ItrNum;
-	clst_l1_ns_std = sqrt(clst_l1_ns_std/(double)ItrNum - clst_l1_ns_avg*clst_l1_ns_avg);
+	clst_re_ns_avg /= (double)ItrNum;
 	clst_l2_ns_avg /= (double)ItrNum;
-	clst_l2_ns_std = sqrt(clst_l2_ns_std/(double)ItrNum - clst_l2_ns_avg*clst_l2_ns_avg);
 
 	fp = FileOpen(outfile, "a");
-	fprintf(fp, "function,AVG(rel-err),STD(rel-err),AVG(l2-loss),STD(l2-loss)\n");
-	fprintf(fp, "Triangles,%e,%e,%e,%e\n", tri_l1_ns_avg, tri_l1_ns_std, tri_l2_ns_avg, tri_l2_ns_std);
-	fprintf(fp, "2-stars,%e,%e,%e,%e\n", st2_l1_ns_avg, st2_l1_ns_std, st2_l2_ns_avg, st2_l2_ns_std);
-	fprintf(fp, "3-stars,%e,%e,%e,%e\n", st3_l1_ns_avg, st3_l1_ns_std, st3_l2_ns_avg, st3_l2_ns_std);
-	fprintf(fp, "Clst,%e,%e,%e,%e\n", clst_l1_ns_avg, clst_l1_ns_std, clst_l2_ns_avg, clst_l2_ns_std);
+	fprintf(fp, "function,AVG(rel-err),AVG(l2-loss)\n");
+	fprintf(fp, "Triangles,%e,%e\n", tri_re_ns_avg, tri_l2_ns_avg);
+	fprintf(fp, "2-stars,%e,%e\n", st2_re_ns_avg, st2_l2_ns_avg);
+	fprintf(fp, "3-stars,%e,%e\n", st3_re_ns_avg, st3_l2_ns_avg);
+	fprintf(fp, "Clst,%e,%e\n", clst_re_ns_avg, clst_l2_ns_avg);
 	fclose(fp);
 
 	// free
