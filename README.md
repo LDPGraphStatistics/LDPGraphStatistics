@@ -1,6 +1,10 @@
 # LDP Graph Statistics
 
-This is a source code of "Locally Differentially Private Analysis of Graph Statistics".
+This is a source code of the following paper:
+
+Jacob Imola, Takao Murakami, Kamalika Chaudhuri, "Locally Differentially Private Analysis of Graph Statistics," Proceedings of the 30th USENIX Security Symposium (USENIX Security 2021), 2021 (to appear).
+
+Full paper: https://arxiv.org/abs/2010.08688
 
 # Directory Structure
 - cpp/			&emsp;C++ codes (put the required files under this directory; see cpp/README.md).
