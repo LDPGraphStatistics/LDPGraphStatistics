@@ -12,6 +12,9 @@ Full paper: https://arxiv.org/abs/2010.08688
   - IMDB/			&emsp;Output data in the IMDB dataset.
   - Orkut/			&emsp;Output data in the Orkut dataset.
 - python/		&emsp;Python codes.
+- results/		&emsp;Experimental results.
+  - IMDB/			&emsp;Experimental results in the IMDB dataset.
+  - Orkut/			&emsp;Experimental results in the Orkut dataset.
 - run_EvalLossLocal.sh	  &emsp;Shell script to evaluate the privacy and utility of graph algorithms.
 - LICENSE.txt		&emsp;MIT license.
 - README.md		&emsp;This file.
