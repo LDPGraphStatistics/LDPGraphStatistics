@@ -73,7 +73,7 @@ $ ./run_EvalLossLocal.sh
 
 Then experimental results for centralized DP (CentralLap_triangle, CentralLap_2star), one-round LDP (LocalRR_triangle, LocalLap_2star), and two-rounds LDP (Local2Rounds_triangle) graph algorithms (n=10000, epsilon=1) will be output in data/IMDB/ and data/Orkut/.
 
-To change n and epsilon, change the 2nd and 3rd parameters in EvalLossLocal (for more details, see Usage of EvalLossLocal).
+To change n and epsilon, change the 2nd and 3rd parameters in EvalLossLocal (for more details, see Usage of EvalLossLocal). Experimental results in our paper can be found in results/.
 
 # Execution Environment
 We used CentOS 7.5 with gcc 4.8.5 and python 3.6.5.
