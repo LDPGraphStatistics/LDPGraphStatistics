@@ -542,13 +542,15 @@ void CalcILocTri(map<int, int> *a_mat, int *deg, string outfile, double &tri_num
 							k = aitr2->first;
 							// Continue if the edge is deleted
 							if(a_mat_del[i].count(k) == 1) continue;
-							if(j >= k) continue;
+							if (j >= k || k >= i) continue;
 							st2_num_u[i] += 1.0;
 							if(a_mat_ns[j][k] == 1) tri_num_u[i] += 1.0;
 						}
 					}
 				}
 			}
+			// #triangles - (1 - p) * #2-stars --> trist2_num_u
+			for(i=0;i<NodeNum;i++) trist2_num_u[i] = tri_num_u[i] - (1 - p) * st2_num_u[i];
 		}
 
 		// Global sensitivity using noisy max degree --> sen_tri
