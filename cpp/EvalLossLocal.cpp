@@ -19,8 +19,6 @@ double Eps;
 string Eps_s;
 double EpsNsMaxDeg;
 int NSType;
-double PosBias;
-string PosBias_s;
 int ItrNum;
 int Alg;
 double Balloc[3];
@@ -112,8 +110,6 @@ double CalcNSMaxDeg(int *deg, int &max_deg, double eps, string outfile){
 		if(max_deg < deg[i]) max_deg = deg[i];
 		if(max_deg_ns < deg_lap[i]) max_deg_ns = deg_lap[i];
 	}
-	// Add positive bias --> max_deg_ns
-	max_deg_ns += PosBias;
 
 	// If max_deg_ns exceeds NodeNum - 1, then use NodeNum - 1
 	if(max_deg_ns > (double)NodeNum - 1.0) max_deg_ns = (double)NodeNum - 1.0;
@@ -626,12 +622,11 @@ int main(int argc, char *argv[])
 	init_by_array(init, length);
 
 	if (argc < 2) {
-	    printf("Usage: %s [EdgeFile (in)] ([#nodes (default: -1)] [epsilon (default: 1)] [NSType (default: 0)] [PosBias (default: 0)] [#itr (default: 1)] [alg (default: 0)] [Balloc (default: 1-1-1)])\n\n", argv[0]);
+	    printf("Usage: %s [EdgeFile (in)] ([#nodes (default: -1)] [epsilon (default: 1)] [NSType (default: 0)] [#itr (default: 1)] [alg (default: 0)] [Balloc (default: 1-1-1)])\n\n", argv[0]);
 		printf("[EdgeFile]: Edge file\n");
 		printf("[#nodes]: Number of nodes (-1: all)\n");
 		printf("[epsilon]: Epsilon\n");
 		printf("[NSType]: Noise type (0: Lap (#nodes), 1: Lap (max degree), 2: Lap (noisy max degree))\n");
-		printf("[PosBias]: Positive bias (noisy max degree)\n");
 		printf("[#itr]: Number of iterations\n");
 		printf("[alg]: Algorithm (0: centralized, 1: non-interactive local (RR w/ emp), 2: non-interactive local (RR w/o emp), 3: interactive local)\n");
 		printf("[Balloc]: Privacy budget allocation (alg=3): Eps1st-Eps2ndTr-Eps2ndSt\n");
@@ -652,16 +647,10 @@ int main(int argc, char *argv[])
 	EpsNsMaxDeg = Eps / 10;
 	NSType = 0;
 	if (argc >= 5) NSType = atoi(argv[4]);
-	PosBias = 0.0;
-	PosBias_s = "0.0";
-	if (argc >= 6){
-		PosBias = atof(argv[5]) / EpsNsMaxDeg;
-		PosBias_s = argv[5];
-	}
 	ItrNum = 1;
-	if (argc >= 7) ItrNum = atoi(argv[6]);
+	if (argc >= 6) ItrNum = atoi(argv[5]);
 	Alg = 0;
-	if (argc >= 8) Alg = atoi(argv[7]);
+	if (argc >= 7) Alg = atoi(argv[6]);
 	if (Alg < 0 || Alg > 4){
 		printf("Error: incorect [Alg]\n");
 		exit(-1);
@@ -675,8 +664,8 @@ int main(int argc, char *argv[])
 		Balloc[i] = 1.0;
 		Balloc_s[i] = str_1;
 	}
-	if (argc >= 9){
-		if((Balloc_s[0] = strtok(argv[8], "-")) == NULL){
+	if (argc >= 8){
+		if((Balloc_s[0] = strtok(argv[7], "-")) == NULL){
 			printf("Error: incorect [Balloc]\n");
 			exit(-1);
 		}
@@ -752,7 +741,7 @@ int main(int argc, char *argv[])
 	i = EdgeFile.find_last_of("/");
 	outdir = EdgeFile.substr(0, i+1);
 	for(i=0;i<3;i++){
-		outfile = outdir + "res_n" + to_string(NodeNum) + "_alg" + to_string(Alg) + "_eps" + Eps_s + "_ns" + to_string(NSType) + "_pb" + PosBias_s + "_ba" + Balloc_s[0] + "-" + Balloc_s[1] + "-" + Balloc_s[2] + "_itr" + to_string(ItrNum) + ".csv";
+		outfile = outdir + "res_n" + to_string(NodeNum) + "_alg" + to_string(Alg) + "_eps" + Eps_s + "_ns" + to_string(NSType) + "_ba" + Balloc_s[0] + "-" + Balloc_s[1] + "-" + Balloc_s[2] + "_itr" + to_string(ItrNum) + ".csv";
 		fp = FileOpen(outfile, "w");
 		fprintf(fp, "#tri(true),#tri(est),#tri(rel-err),#tri(l2-loss),#2st(true),#2st(est),#2st(rel-err),#2st(l2-loss),#3st(true),#3st(est),#3st(rel-err),#3st(l2-loss),clst(true),clst(est),clst(rel-err),clst(l2-loss),sen_tri,sen_2st,sen_3st\n");
 		fclose(fp);
