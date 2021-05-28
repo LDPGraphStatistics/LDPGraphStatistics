@@ -15,6 +15,7 @@ Full paper: https://arxiv.org/abs/2010.08688
 - results/		&emsp;Experimental results.
   - IMDB/			&emsp;Experimental results in the IMDB dataset.
   - Orkut/			&emsp;Experimental results in the Orkut dataset.
+  - BAGraph/		&emsp;Experimental results in the BA (Barabasi-Albert) graph datasets.
 - run_EvalLossLocal.sh	  &emsp;Shell script to evaluate the privacy and utility of graph algorithms.
 - LICENSE.txt		&emsp;MIT license.
 - README.md		&emsp;This file.
