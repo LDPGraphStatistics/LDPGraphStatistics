@@ -11,6 +11,8 @@ Full paper: https://arxiv.org/abs/2010.08688
 - data/			&emsp;Output data (obtained by running codes).
   - IMDB/			&emsp;Output data in the IMDB dataset.
   - Orkut/			&emsp;Output data in the Orkut dataset.
+  - BAGraph-m10/			&emsp;Output data in the the BA (Barabasi-Albert) graph dataset (m=10).
+  - BAGraph-m50/			&emsp;Output data in the the BA (Barabasi-Albert) graph dataset (m=50).
 - python/		&emsp;Python codes.
 - results/		&emsp;Experimental results.
   - IMDB/			&emsp;Experimental results in the IMDB dataset.
@@ -63,16 +65,29 @@ $ cd ../
 
 Then the edge file (edges.csv) and degree file (deg.csv) will be output in data/IMDB/.
 
-**(4) Evaluate the privacy and utility of graph algorithms**
+**(4) Generate the BA (Barabasi-Albert) graphs**
 
-Run the following commands.
+Run the following commands (m: attachment parameter).
+
+```
+$ cd python/
+$ python3 BAGraph.py 1000000 10 data/BAGraph-m10/edges.csv data/BAGraph-m10/deg.csv
+$ python3 BAGraph.py 1000000 50 data/BAGraph-m50/edges.csv data/BAGraph-m50/deg.csv
+$ cd ../
+```
+
+Then the edge file (edges.csv) and degree file (deg.csv) will be output in data/BAGraph-m10/ and data/BAGraph-m50/.
+
+**(5) Evaluate the privacy and utility of graph algorithms**
+
+Run the following commands ([Dataset] is "IMDB", "Orkut", "BAGraph-m10", or "BAGraph-m50").
 
 ```
 $ chmod +x run_EvalLossLocal.sh
-$ ./run_EvalLossLocal.sh
+$ ./run_EvalLossLocal.sh [Dataset (IMDB/Orkut/BAGraph-m10/BAGraph-m50)]
 ```
 
-Then experimental results for centralized DP (CentralLap_triangle, CentralLap_2star), one-round LDP (LocalRR_triangle, LocalLap_2star), and two-rounds LDP (Local2Rounds_triangle) graph algorithms (n=10000, epsilon=1) will be output in data/IMDB/ and data/Orkut/.
+Then experimental results for centralized DP (CentralLap_triangle, CentralLap_2star), one-round LDP (LocalRR_triangle, LocalLap_2star), and two-rounds LDP (Local2Rounds_triangle) graph algorithms (n=10000, epsilon=1) will be output in data/[Dataset]/.
 
 To change n and epsilon, change the 2nd and 3rd parameters in EvalLossLocal (for more details, see Usage of EvalLossLocal). Experimental results in our paper can be found in results/.
 
