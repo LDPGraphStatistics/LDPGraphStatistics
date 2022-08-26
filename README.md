@@ -2,7 +2,7 @@
 
 This is a source code of the following paper:
 
-Jacob Imola, Takao Murakami, Kamalika Chaudhuri, "Locally Differentially Private Analysis of Graph Statistics," Proceedings of the 30th USENIX Security Symposium (USENIX Security 2021), 2021 (to appear).
+Jacob Imola, Takao Murakami, Kamalika Chaudhuri, "Locally Differentially Private Analysis of Graph Statistics," Proceedings of the 30th USENIX Security Symposium (USENIX Security 2021), pp.983-1000, 2021.
 
 Full paper: https://arxiv.org/abs/2010.08688
 
