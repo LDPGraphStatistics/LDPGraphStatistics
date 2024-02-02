@@ -59,7 +59,7 @@ Run the following commands.
 
 ```
 $ cd python/
-$ python3 Read_IMDB.py data/Orkut/com-orkut.ungraph.txt data/Orkut/edges.csv data/Orkut/deg.csv
+$ python3 ReadIMDB.py ../data/Orkut/com-orkut.ungraph.txt ../data/Orkut/edges.csv ../data/Orkut/deg.csv
 $ cd ../
 ```
 
@@ -71,8 +71,8 @@ Run the following commands (m: attachment parameter).
 
 ```
 $ cd python/
-$ python3 BAGraph.py 1000000 10 data/BAGraph-m10/edges.csv data/BAGraph-m10/deg.csv
-$ python3 BAGraph.py 1000000 50 data/BAGraph-m50/edges.csv data/BAGraph-m50/deg.csv
+$ python3 BAGraph.py 1000000 10 ../data/BAGraph-m10/edges.csv ../data/BAGraph-m10/deg.csv
+$ python3 BAGraph.py 1000000 50 ../data/BAGraph-m50/edges.csv ../data/BAGraph-m50/deg.csv
 $ cd ../
 ```
 
