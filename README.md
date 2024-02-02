@@ -44,7 +44,7 @@ Run the following commands.
 
 ```
 $ cd python/
-$ python3 Read_IMDB.py data/IMDB/IMDB.mtx data/IMDB/edges.csv data/IMDB/deg.csv
+$ python3 ReadIMDB.py ../data/IMDB/IMDB.mtx ../data/IMDB/edges.csv ../data/IMDB/deg.csv
 $ cd ../
 ```
 
@@ -59,7 +59,7 @@ Run the following commands.
 
 ```
 $ cd python/
-$ python3 ReadIMDB.py ../data/Orkut/com-orkut.ungraph.txt ../data/Orkut/edges.csv ../data/Orkut/deg.csv
+$ python3 ReadOrkut.py ../data/Orkut/com-orkut.ungraph.txt ../data/Orkut/edges.csv ../data/Orkut/deg.csv
 $ cd ../
 ```
 
